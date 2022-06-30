@@ -1,0 +1,129 @@
+﻿<main id="Page">
+    <div class="panel panel-default">
+        <div class="panel-heading">資料庫連線</div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>資料庫IP</label>
+                        <input type="text" class="form-control" v-model="form.Q_DB_IP.value">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>資料庫帳號</label>
+                        <input type="text" class="form-control" v-model="form.Q_USER_ID.value">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>資料庫密碼</label>
+                        <input type="text" class="form-control" v-model="form.Q_USER_PWD.value">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>資料庫名稱</label>
+                        <input type="text" class="form-control" v-model="form.Q_DB_NAME.value">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>資料表名稱</label>
+                        <input type="text" class="form-control" v-model="form.Q_TABLE_NAME.value">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-heading">
+            <button class="btn btn-primary" type="button" v-on:click="GetDML()">產生 DML</button>
+        </div>
+        <div class="panel-body">
+            <h3>SELECT</h3>
+            <code style="font-size: 16px;">{{DmlSelect}}</code>
+            <h3>INSERT</h3>
+            <code style="font-size: 16px;">{{DmlInsert}}</code>
+            <h3>UPDATE</h3>
+            <code style="font-size: 16px;">{{DmlUpdate}}</code>
+            <h3>DELETE</h3>
+            <code style="font-size: 16px;">{{DmlDelete}}</code>
+        </div>
+    </div>
+</main>
+<script>
+    var Page = new Vue({
+        el: '#Page'
+        , data: function () {
+            var data = {
+                form: {}
+            };
+            data.DmlSelect = '';
+            data.DmlInsert = '';
+            data.DmlUpdate = '';
+            data.DmlDelete = '';
+            return data;
+        }
+        , created: function () {
+            var self = this;
+            var columnList = [
+                'Q_DB_IP', 'Q_USER_ID', 'Q_USER_PWD', 'Q_DB_NAME','Q_TABLE_NAME'
+            ];
+            self._CreateForm(self.form, columnList);
+            self.form.Q_DB_IP.value = "127.0.0.1";
+            self.form.Q_USER_ID.value = "test";
+            self.form.Q_USER_PWD.value = "test";
+            self.form.Q_DB_NAME.value = "Teach";
+            self.form.Q_TABLE_NAME.value = "UserTable";
+        }
+        , methods: {
+            GetToken: function () {
+                var token = '@Html.AntiForgeryToken()';
+                token = $(token).val();
+                return token;
+            }
+            // 產生 DML
+            , GetDML: function () {
+                var self = this;
+                var postData = self._GetPostData(self.form, "Q_");
+                $.blockUI({ message: '處理中...' });
+                $.ajax({
+                    url:'@Url.Content("~/Home/GetDML")',
+                    method:'POST',
+                    dataType:'json',
+                    data: { inModel: postData, __RequestVerificationToken: self.GetToken() },
+                    success: function (datas) {
+                        self.DmlSelect = datas.DmlSelect;
+                        self.DmlInsert = datas.DmlInsert;
+                        self.DmlUpdate = datas.DmlUpdate;
+                        self.DmlDelete = datas.DmlDelete;
+                        $.unblockUI();
+                    },
+                    error: function (err) {
+                        alert(err.responseText);
+                        $.unblockUI();
+                    },
+                });
+            }
+            // 產生欄位控制項
+            , _CreateForm: function (form, variable) {
+                for (var key in variable) {
+                    control = {
+                        id: variable[key]
+                        , value: ''
+                    };
+                    Vue.set(form, variable[key], control);
+                }
+            }
+            // 產生送往後端的資料
+            , _GetPostData: function (form, blockName) {
+                var postData = {};
+                for (var key in form) {
+                    if (key.substring(0, 2) !== blockName)
+                        continue;
+                    postData[key] = form[key].value;
+                }
+                return postData;
+            }
+        }
+    })
+</script>
